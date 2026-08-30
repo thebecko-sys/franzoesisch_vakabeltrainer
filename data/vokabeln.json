@@ -2,6 +2,7 @@
   "lektionen": [
     {
       "id": 1,
+      "grade": 7,
       "name": "Unité 1 – Volet 1",
       "vokabeln": [
         { "de": "das Schloss", "fr": "le château / les châteaux", "hint": "Singular / Plural" },
