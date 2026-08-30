@@ -14,18 +14,21 @@ type Lesson = { id: number; grade: number; name: string; vokabeln: Card[] };
 
 const lessons = vokabelDaten.lektionen as Lesson[];
 const allLessonIds = lessons.map((lesson) => lesson.id);
-const grades = [...new Set(lessons.map((lesson) => lesson.grade))].sort((a, b) => a - b);
+const grades = [...new Set(lessons.map((lesson) => lesson.grade))].sort((a, b) => b - a);
+const highestGrade = grades[0];
+const highestLesson = lessons.filter((lesson) => lesson.grade === highestGrade).at(-1);
+const defaultLessonIds = highestLesson ? [highestLesson.id] : [];
 const shuffle = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
 
 export default function Home() {
   const [direction, setDirection] = useState<Direction>("de-fr");
   const [mode, setMode] = useState<Mode>("think");
-  const [selectedLessons, setSelectedLessons] = useState<number[]>(allLessonIds);
+  const [selectedLessons, setSelectedLessons] = useState<number[]>(defaultLessonIds);
   const cards = useMemo(
     () => lessons.filter((lesson) => selectedLessons.includes(lesson.id)).flatMap((lesson) => lesson.vokabeln),
     [selectedLessons]
   );
-  const [order, setOrder] = useState(() => shuffle(lessons.flatMap((lesson) => lesson.vokabeln).map((_, i) => i)));
+  const [order, setOrder] = useState(() => shuffle(lessons.filter((lesson) => defaultLessonIds.includes(lesson.id)).flatMap((lesson) => lesson.vokabeln).map((_, i) => i)));
   const [position, setPosition] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -79,13 +82,21 @@ export default function Home() {
   function toggleLesson(id: number) {
     setSelectedLessons((current) => {
       if (current.includes(id)) {
-        if (current.length === 1) return current;
         return current.filter((lessonId) => lessonId !== id);
       }
       return [...current, id].sort((a, b) => a - b);
     });
   }
-  function selectAllLessons() { setSelectedLessons(allLessonIds); }
+  function toggleGrade(grade: number) {
+    const gradeLessonIds = lessons.filter((lesson) => lesson.grade === grade).map((lesson) => lesson.id);
+    setSelectedLessons((current) => {
+      const completeGradeSelected = gradeLessonIds.every((id) => current.includes(id));
+      return completeGradeSelected
+        ? current.filter((id) => !gradeLessonIds.includes(id))
+        : [...new Set([...current, ...gradeLessonIds])].sort((a, b) => a - b);
+    });
+  }
+  function toggleAllLessons() { setSelectedLessons(allSelected ? [] : allLessonIds); }
   function choose(option: string) {
     if (selected) return;
     setSelected(option);
@@ -158,7 +169,14 @@ export default function Home() {
               </div>
             </section>
 
-            <div className="relative overflow-hidden rounded-[1.5rem] border border-[#d9dff0] bg-white p-4 shadow-[0_16px_42px_rgba(46,66,112,.12)] sm:p-5">
+            {cards.length === 0 && (
+              <div className="rounded-[1.5rem] border border-dashed border-[#aebbd5] bg-white/80 px-5 py-10 text-center shadow-sm">
+                <Sparkles className="mx-auto mb-3 size-7 text-[#5274b4]" />
+                <h2 className="text-lg font-black">Keine Lektion ausgewählt</h2>
+                <p className="mt-2 text-sm leading-6 text-[#667068]">Aktiviere im Tab „Lektionen“ eine Klasse oder einzelne Lektion.</p>
+              </div>
+            )}
+            <div className={`${cards.length === 0 ? "hidden" : ""} relative overflow-hidden rounded-[1.5rem] border border-[#d9dff0] bg-white p-4 shadow-[0_16px_42px_rgba(46,66,112,.12)] sm:p-5`}>
               <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-[#ffe1d8]/75" />
               <div className="absolute bottom-0 left-0 h-16 w-16 rounded-tr-full bg-[#e7efff]/70" />
               <div className="relative mb-4 flex items-center justify-between">
@@ -203,17 +221,22 @@ export default function Home() {
                   <div className="mb-1 flex items-center gap-2"><Sparkles className="size-4 text-[#315d43]" /><h2 className="text-base font-black">Lektionen auswählen</h2></div>
                   <p className="text-xs leading-5 text-[#667068]">Die Lernabfragen verwenden ausschließlich Wörter aus den aktivierten Lektionen.</p>
                 </div>
-                <button onClick={selectAllLessons} className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition ${allSelected ? "border-[#315d43] bg-[#dce9df] text-[#315d43]" : "border-[#d8d5cc] bg-white text-[#667068]"}`}>Alle</button>
+                <button onClick={toggleAllLessons} aria-pressed={allSelected} className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition ${allSelected ? "border-[#315d43] bg-[#dce9df] text-[#315d43]" : "border-[#d8d5cc] bg-white text-[#667068]"}`}>Alle</button>
               </div>
               <div className="grid gap-4">
                 {grades.map((grade) => {
                   const gradeLessons = lessons.filter((lesson) => lesson.grade === grade);
+                  const selectedInGrade = gradeLessons.filter((lesson) => selectedLessons.includes(lesson.id)).length;
+                  const completeGradeSelected = selectedInGrade === gradeLessons.length;
                   return (
                     <section key={grade} aria-labelledby={`grade-${grade}`}>
-                      <div className="mb-2 flex items-center justify-between rounded-xl bg-[#eaf0fc] px-3 py-2 text-[#315796]">
-                        <h3 id={`grade-${grade}`} className="text-sm font-black">{grade}. Klasse</h3>
-                        <span className="text-[11px] font-bold">{gradeLessons.length} {gradeLessons.length === 1 ? "Lektion" : "Lektionen"}</span>
-                      </div>
+                      <button onClick={() => toggleGrade(grade)} aria-pressed={completeGradeSelected} className="mb-2 flex w-full items-center justify-between rounded-xl bg-[#eaf0fc] px-3 py-2 text-left text-[#315796] transition active:scale-[.99]">
+                        <span className="flex items-center gap-2">
+                          <span className={`grid size-5 place-items-center rounded-md border text-xs font-black ${completeGradeSelected ? "border-[#315796] bg-[#315796] text-white" : selectedInGrade ? "border-[#6f8bc0] bg-white text-[#315796]" : "border-[#9facc3] bg-white text-transparent"}`}>{completeGradeSelected ? "✓" : selectedInGrade ? "–" : "✓"}</span>
+                          <h3 id={`grade-${grade}`} className="text-sm font-black">{grade}. Klasse</h3>
+                        </span>
+                        <span className="text-[11px] font-bold">{selectedInGrade} / {gradeLessons.length}</span>
+                      </button>
                       <div className="grid gap-2">
                         {gradeLessons.map((lesson) => {
                           const active = selectedLessons.includes(lesson.id);
