@@ -38,7 +38,8 @@ export default function Home() {
   const answer = direction === "de-fr" ? card.fr : card.de;
   const options = useMemo(() => {
     const field = direction === "de-fr" ? "fr" : "de";
-    return shuffle([answer, ...shuffle(cards.filter((c) => c[field] !== answer)).slice(0, 3).map((c) => c[field])]);
+    const distractors = [...new Set(cards.map((c) => c[field]).filter((value) => value !== answer))];
+    return shuffle([answer, ...shuffle(distractors).slice(0, 3)]);
   }, [answer, direction, cards]);
 
   useEffect(() => {
@@ -124,7 +125,7 @@ export default function Home() {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h1 className="truncate text-lg font-black tracking-[-.03em] sm:text-xl">Bonjour, les mots!</h1>
-                <span className="shrink-0 rounded-full bg-[#e7efff] px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#315796]">7. Klasse</span>
+                <span className="shrink-0 rounded-full bg-[#e7efff] px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#315796]">Klasse 5–7</span>
               </div>
             </div>
             <button onClick={reset} aria-label="Fortschritt zurücksetzen" className="rounded-full border border-[#d8d5cc] bg-white p-2 text-[#526057] shadow-sm active:scale-95"><RotateCcw className="size-4" /></button>

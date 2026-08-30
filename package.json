@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "sync:docs-data": "node scripts/sync-docs-data.mjs"
   },
   "dependencies": {
     "class-variance-authority": "0.7.1",
